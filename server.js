@@ -77,12 +77,13 @@ app.post('/api/paystack-initialize', async (req, res) => {
 });
 
 // ==================== START SERVER ====================
-const PORT = process.env.PORT || 3000;
+// Only run app.listen locally (Vercel handles this automatically)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Paystack Server live at http://localhost:${PORT}`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`==================================================`);
-  console.log(`🚀 Paystack Server live at http://localhost:${PORT}`);
-  console.log(`==================================================`);
-});
-
-module.exports = app; // Export the app for testing or further use
+// CRITICAL: This allows Vercel to run your Express app as a serverless function
+module.exports = app;
