@@ -1,0 +1,29 @@
+name: gl_givings_app
+description: "A Flutter application for GospelLife"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.1.2
+  flutter_paystack: ^1.0.7
+  http: ^0.13.6
+  url_launcher: ^6.3.3
+  firebase_core: ^4.12.1
+  cloud_firestore: ^6.7.1
+  intl: any
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
