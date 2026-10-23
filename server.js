@@ -12,7 +12,7 @@ app.use(express.json());
 // ==================== ROUTES ====================
 
 // 1. Health Check Route (Use this to test http://localhost:3000 in your browser)
-app.get('/', (req, res) => {
+app.get('/api/test', (req, res) => {
   res.send('🚀 GospelLife Backend is running successfully!');
 });
 
