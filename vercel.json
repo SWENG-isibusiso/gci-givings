@@ -4,10 +4,6 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "build/web/**/*",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -16,8 +12,11 @@
       "dest": "server.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/build/web/$1"
+      "dest": "/index.html"
     }
   ]
 }
