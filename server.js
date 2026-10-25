@@ -5,6 +5,13 @@ require('dotenv').config({ quiet: true });
 
 const app = express();
 
+
+app.use(cors({
+  origin: '*', // Allow requests from any origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow only GET and POST methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow only specific
+}))
+
 // ==================== MIDDLEWARE ====================
 app.use(cors());
 app.use(express.json());
