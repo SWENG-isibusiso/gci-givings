@@ -87,7 +87,7 @@ class _MainPaymentHandlerState extends State<MainPaymentHandler> {
   Future<void> _verifyPaymentOnBackend(String reference) async {
     try {
       final response = await http.get(
-        Uri.parse('http://gci-givings.vercel.app/api/paystack-verify/$reference'),
+        Uri.parse('https://gci-givings.vercel.app/api/paystack-verify/$reference'),
       );
 
       final data = jsonDecode(response.body);
@@ -408,7 +408,7 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
 
     final double parsedAmount = double.parse(amount);
     // Pointing to updated backend endpoint matching server.js
-    final Uri serverUrl = Uri.parse('http://gci-givings.vercel.app/api/paystack-initialize');
+    final Uri serverUrl = Uri.parse('https://gci-givings.vercel.app/api/paystack-initialize');
 
     debugPrint(">>> PAYMENT PROCESS STARTED <<<");
 
