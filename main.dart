@@ -416,7 +416,7 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
       final userEmail = globalMemberProfile['email'] ?? 'donor@example.com';
       final userName = globalMemberProfile['name'] ?? 'Anonymous';
 
-      debugPrint("Sending request to server: $serverUrl");
+     debugPrint('SENDING PAYMENT TO URL: $serverUrl');
 
       final response = await http.post(
         serverUrl,
