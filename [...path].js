@@ -5,7 +5,12 @@ const axios = require('axios');
 const app = express();
 
 // Middleware
-app.use(cors({ origin: '*' }));
+app.use(cors({ 
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 // Paystack initialize route
