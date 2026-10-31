@@ -47,82 +47,11 @@ class GLGivingsApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MainPaymentHandler(child: DecorativeSplashScreen()),
+      home: const DecorativeSplashScreen(),
     );
   }
 }
 
-// ==================== PAYSTACK REDIRECT & VERIFICATION HANDLER ====================
-class MainPaymentHandler extends StatefulWidget {
-  final Widget child;
-  const MainPaymentHandler({super.key, required this.child});
-
-  @override
-  State<MainPaymentHandler> createState() => _MainPaymentHandlerState();
-}
-
-class _MainPaymentHandlerState extends State<MainPaymentHandler> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForPaymentRedirect();
-    });
-  }
-
-  void _checkForPaymentRedirect() {
-    // Only attempt to read URL parameters if running in a web browser
-    if (kIsWeb) {
-      final Uri currentUri = Uri.base; // 👈 Pure Flutter cross-platform URL accessor
-      final String? reference = currentUri.queryParameters['reference'] ??
-          currentUri.queryParameters['trxref'];
-
-      if (reference != null && reference.isNotEmpty) {
-        debugPrint("🔍 Paystack payment reference detected: $reference");
-        _verifyPaymentOnBackend(reference);
-      }
-    }
-  }
-
-  Future<void> _verifyPaymentOnBackend(String reference) async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://gci-givings.vercel.app/api/paystack-verify/$reference'),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200 && data['status'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 Payment Verified Successfully! Thank you for giving.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 5),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Verification failed: ${data['message']}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error verifying payment: $e');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
-}
-
-// ==================== 1. SPLASH SCREEN ====================
 class DecorativeSplashScreen extends StatefulWidget {
   const DecorativeSplashScreen({super.key});
 
@@ -235,7 +164,6 @@ class _DecorativeSplashScreenState extends State<DecorativeSplashScreen> {
   }
 }
 
-// ==================== 2. MAIN NAVIGATION ====================
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -286,7 +214,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-// ==================== 3. GIVING HOME SCREEN ====================
 class GivingHomeScreen extends StatefulWidget {
   const GivingHomeScreen({super.key});
 
@@ -320,7 +247,6 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
     phoneController = TextEditingController(
       text: globalMemberProfile['phone'] ?? '',
     );
-    // Pre-fill default amount to prevent accidental empty clicks
     amountController.text = '100';
   }
 
@@ -407,7 +333,6 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
     }
 
     final double parsedAmount = double.parse(amount);
-    // Pointing to updated backend endpoint matching server.js
     final Uri serverUrl = Uri.parse('https://gci-givings.vercel.app/api/paystack-initialize');
 
     debugPrint(">>> PAYMENT PROCESS STARTED <<<");
@@ -416,18 +341,18 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
       final userEmail = globalMemberProfile['email'] ?? 'donor@example.com';
       final userName = globalMemberProfile['name'] ?? 'Anonymous';
 
-     debugPrint('SENDING PAYMENT TO URL: $serverUrl');
+      debugPrint('SENDING PAYMENT TO URL: $serverUrl');
 
       final response = await http.post(
         serverUrl,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': userEmail,
-          'amount': parsedAmount, // Backend handles sub-unit multiplication (x 100)
+          'amount': parsedAmount,
           'paymentProvider': paymentProvider,
           'phone': phone,
           'accountNumber': accountNumber,
-          'category': selectedCategory, // Crucial for dynamic  targeting
+          'category': selectedCategory,
         }),
       ).timeout(
         const Duration(seconds: 10),
@@ -497,7 +422,6 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
     }
   }
 
-  // 🎨 UI BUILD METHOD
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -731,7 +655,7 @@ class _GivingHomeScreenState extends State<GivingHomeScreen> {
     );
   }
 }
-// ==================== 4. HISTORY SCREEN ====================
+
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
@@ -796,7 +720,6 @@ class HistoryScreen extends StatelessWidget {
   }
 }
 
-// ==================== 5. PROFILE SCREEN (CROSS-PLATFORM CAMERA & GALLERY) ====================
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -946,93 +869,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.blue,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              globalMemberProfile['name']!,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+            const SizedBox(height: 20),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder()),
             ),
-            Text(
-              globalMemberProfile['branch']!,
-              style: const TextStyle(fontSize: 14, color: Colors.blue, fontWeight: FontWeight.w500),
+            const SizedBox(height: 15),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: branchController,
+              decoration: const InputDecoration(labelText: 'Church Branch', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email Address', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 20),
-
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Colors.blue, width: 1.5),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Edit Member Details',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: const Icon(Icons.person_outline, color: Colors.blue),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Email Address',
-                        prefixIcon: const Icon(Icons.email_outlined, color: Colors.orange),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Mobile Phone Number',
-                        prefixIcon: const Icon(Icons.phone_android, color: Colors.green),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: branchController,
-                      decoration: InputDecoration(
-                        labelText: 'Home Church Branch',
-                        prefixIcon: const Icon(Icons.church_outlined, color: Colors.red),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed: saveProfile,
-                      icon: const Icon(Icons.save_outlined, color: Colors.white),
-                      label: const Text('Save Profile Details', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ElevatedButton(
+              onPressed: saveProfile,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+              child: const Text('Save Profile'),
             ),
           ],
         ),
