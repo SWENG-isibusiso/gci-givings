@@ -4,27 +4,36 @@ const axios = require('axios');
 
 const app = express();
 
-// Middleware
-app.use(cors({ 
+// CRITICAL: Configure CORS to allow requests from any origin (including Flutter Web)
+app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 app.use(express.json());
 
-// Paystack initialize route
+// Your Paystack initialize route
 app.post('/api/paystack-initialize', async (req, res) => {
   try {
-    const { email, amount } = req.body;
+    const { email, amount, paymentProvider, phone, accountNumber, category } = req.body;
     console.log('📥 Received payment initialization for:', email);
 
-    // Call Paystack API securely using environment secret key
     const paystackResponse = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
         email,
-        amount,
+        amount: amount * 100, // Convert to minor units (kobo/cents)
+        callback_url: 'https://gci-givings.vercel.app',
+        metadata: {
+          paymentProvider,
+          phone,
+          accountNumber,
+          category
+        }
       },
       {
         headers: {
@@ -38,11 +47,10 @@ app.post('/api/paystack-initialize', async (req, res) => {
   } catch (error) {
     console.error('Paystack Error:', error.response?.data || error.message);
     return res.status(500).json({ 
-      success: false, 
-      error: error.response?.data || error.message 
+      status: false, 
+      message: error.response?.data?.message || error.message 
     });
   }
 });
 
-// CRITICAL: Export app for Vercel serverless runtime (No app.listen!)
 module.exports = app;
