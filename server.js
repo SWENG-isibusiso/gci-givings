@@ -5,77 +5,73 @@ require('dotenv').config({ quiet: true });
 
 const app = express();
 
-
-app.use(cors({
-  origin: '*', // Allow requests from any origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow only GET and POST methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow only specific
-}))
-
 // ==================== MIDDLEWARE ====================
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
+
+const PAYSTACK_BASE = 'https://api.paystack.co';
+
+function paystackHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
 
 // ==================== ROUTES ====================
 
-// 1. Health Check Route (Use this to test http://localhost:3000 in your browser)
+// Health check: open https://YOUR-APP.vercel.app/api/test in a browser
 app.get('/api/test', (req, res) => {
-  res.send('🚀 GospelLife Backend is running successfully!');
+  res.send('GospelLife Backend is running successfully!');
 });
 
-// 2. Main Paystack Initialization Endpoint
+// Initialize a Paystack transaction
 app.post('/api/paystack-initialize', async (req, res) => {
   try {
-    const { email, amount, paymentProvider, phone, accountNumber, category } = req.body;
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error('PAYSTACK_SECRET_KEY is not set');
+      return res.status(500).json({ status: false, message: 'Server is not configured for payments.' });
+    }
 
-    console.log(`\n📥 Received Payment Request:`);
-    console.log(`   - Category: ${category}`);
-    console.log(`   - Amount: KSh ${amount}`);
-    console.log(`   - Email: ${email}`);
+    const { email, amount, paymentProvider, phone, accountNumber, category } = req.body || {};
 
-    // Build payload for Paystack API
+    const numericAmount = Number(amount);
+    if (!email || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ status: false, message: 'A valid email and amount are required.' });
+    }
+
     const payload = {
-      email: email,
-      amount: Math.round(amount * 100), // Convert KSh to cents/subunits
+      email,
+      amount: Math.round(numericAmount * 100), // KSh -> subunit
+      currency: process.env.PAYSTACK_CURRENCY || 'KES',
       metadata: {
-        category: category,
-        paymentProvider: paymentProvider,
+        category,
+        paymentProvider,
         phone: phone || null,
         accountNumber: accountNumber || null,
         custom_fields: [
-          {
-            display_name: 'Giving Category',
-            variable_name: 'category',
-            value: category,
-          },
-          {
-            display_name: 'Payment Provider',
-            variable_name: 'payment_provider',
-            value: paymentProvider || 'Paystack',
-          },
+          { display_name: 'Giving Category', variable_name: 'category', value: category },
+          { display_name: 'Payment Provider', variable_name: 'payment_provider', value: paymentProvider || 'Paystack' },
         ],
       },
     };
 
-    // Call Paystack API using Axios
-    const paystackResponse = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Where Paystack sends the donor after paying (your hosted web app URL)
+    if (process.env.PAYSTACK_CALLBACK_URL) {
+      payload.callback_url = process.env.PAYSTACK_CALLBACK_URL;
+    }
 
-    console.log('✅ Paystack Authorization URL Generated Successfully!');
+    const paystackResponse = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, payload, {
+      headers: paystackHeaders(),
+    });
+
     return res.status(200).json(paystackResponse.data);
-
   } catch (error) {
-    const errorMessage = error.response ? error.response.data : error.message;
-    console.error('❌ Paystack Error:', errorMessage);
-
+    console.error('Paystack init error:', error.response ? error.response.data : error.message);
     return res.status(500).json({
       status: false,
       message: error.response?.data?.message || 'Failed to initialize payment with Paystack.',
@@ -83,14 +79,34 @@ app.post('/api/paystack-initialize', async (req, res) => {
   }
 });
 
+// Verify a transaction (the Flutter app calls this after Paystack redirects back)
+app.get('/api/paystack-verify/:reference', async (req, res) => {
+  try {
+    const reference = encodeURIComponent(req.params.reference);
+    const r = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${reference}`, {
+      headers: paystackHeaders(),
+    });
+
+    const paid = r.data?.status === true && r.data?.data?.status === 'success';
+    return res.status(200).json({
+      status: paid,
+      message: paid ? 'Payment verified' : `Payment not successful (${r.data?.data?.status || 'unknown'})`,
+      data: r.data?.data,
+    });
+  } catch (error) {
+    console.error('Paystack verify error:', error.response ? error.response.data : error.message);
+    return res.status(500).json({
+      status: false,
+      message: error.response?.data?.message || 'Failed to verify payment.',
+    });
+  }
+});
+
 // ==================== START SERVER ====================
-// Only run app.listen locally (Vercel handles this automatically)
+// Local only; Vercel runs the exported app as a serverless function.
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`🚀 Paystack Server live at http://localhost:${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`Server live at http://localhost:${PORT}`));
 }
 
-// CRITICAL: This allows Vercel to run your Express app as a serverless function
 module.exports = app;
