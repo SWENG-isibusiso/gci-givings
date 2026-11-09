@@ -1,18 +1,18 @@
 {
-  "name": "gci_givings",
-  "version": "1.0.0",
-  "description": "A new flutter project.",
+  "name": "gci-givings-api",
+  "version": "1.1.0",
+  "description": "Paystack backend for the GospelLife giving app",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "dependencies": {
     "axios": "^1.19.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "firebase-admin": "^13.0.0"
   },
-  "author": "",
   "license": "ISC",
   "type": "commonjs"
 }
